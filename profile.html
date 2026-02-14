@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile - Zexpense</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="profile.css">
+</head>
+<body>
+
+<div class="profile-container">
+
+    <h2>My Profile</h2>
+
+    <div class="profile-card">
+  
+        <p><strong>Email:</strong> <span id="profileEmail"></span></p>
+        <p><strong>User ID:</strong> <span id="profileUID"></span></p>
+        <p><strong>Account Created:</strong> <span id="profileDate"></span></p>
+    </div>
+
+    <button onclick="logout()">Logout</button>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } 
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBKTMydhOiGqhcBb3OSNrGRDQ8Y8D7npk8",
+  authDomain: "zexpense-a4bf3.firebaseapp.com",
+  projectId: "zexpense-a4bf3",
+  storageBucket: "zexpense-a4bf3.appspot.com",
+  messagingSenderId: "983153509883",
+  appId: "1:983153509883:web:7483e1189ee501ac2ab75e"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+onAuthStateChanged(auth, (user) => {
+
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    document.getElementById("profileEmail").innerText = user.email;
+    document.getElementById("profileUID").innerText = user.uid;
+    document.getElementById("profileName").innerText =
+        user.displayName || "Not Set";
+
+    document.getElementById("profileDate").innerText =
+        new Date(user.metadata.creationTime).toDateString();
+});
+
+window.logout = function() {
+    signOut(auth).then(() => {
+        window.location.href = "login.html";
+    });
+};
+</script>
+
+</body>
+</html>

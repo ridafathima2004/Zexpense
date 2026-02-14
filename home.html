@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Zexpense</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="home.css">
+
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="logo">
+            Zexpense
+        </div>
+
+        <div class="nav-buttons">
+          <button onclick="window.location.href='profile.html'">
+    Profile
+</button>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="main-container">
+
+        <div class="card small-card">
+            <h3>Weekly Expense</h3>
+            <canvas id="weeklyExpenseChart"></canvas>
+        </div>
+
+        <!-- Current Balance Card -->
+        <div class="card small-card">
+            <h3>Current Balance</h3>
+
+            <p class="balance-amount">
+                ₹ <span id="balanceAmount">0</span>
+            </p>
+
+            <div id="balanceInputSection" style="display: none; margin-bottom: 10px;">
+                <input type="number" id="balanceInput" placeholder="Enter balance">
+                <button type="button" onclick="saveBalance()">Save</button>
+            </div>
+
+            <button type="button" class="balance-btn" onclick="showBalanceInput()">
+                Set Balance
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Bottom Cards -->
+    <div class="bottom-cards">
+
+        <div class="bottom-card">
+            <h3>Expense</h3>
+            <button type="button" class="balance-btn" onclick="window.location.href='expense.html'">-</button>
+        </div>
+
+        <div class="bottom-card">
+            <h3>Income</h3>
+            <button type="button" class="balance-btn" onclick="window.location.href='income.html'">+</button>
+        </div>
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module">
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc }
+            from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut }
+            from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKTMydhOiGqhcBb3OSNrGRDQ8Y8D7npk8",
+            authDomain: "zexpense-a4bf3.firebaseapp.com",
+            projectId: "zexpense-a4bf3",
+            storageBucket: "zexpense-a4bf3.appspot.com",
+            messagingSenderId: "983153509883",
+            appId: "1:983153509883:web:7483e1189ee501ac2ab75e"
+        };
+
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+
+        // Global functions for balance management
+        window.showBalanceInput = function () {
+            document.getElementById("balanceInputSection").style.display = "block";
+        };
+
+        window.saveBalance = async function () {
+            const input = document.getElementById("balanceInput").value;
+
+            if (!input || input < 0) {
+                alert("Enter valid balance");
+                return;
+            }
+
+            if (!currentUser) {
+                alert("User not authenticated");
+                return;
+            }
+
+            try {
+                const userRef = doc(db, "users", currentUser.uid);
+                await setDoc(userRef, { balance: parseFloat(input) }, { merge: true });
+
+                document.getElementById("balanceAmount").innerText = parseFloat(input).toFixed(2);
+                document.getElementById("balanceInputSection").style.display = "none";
+                document.getElementById("balanceInput").value = "";
+
+                alert("Balance updated successfully!");
+            } catch (error) {
+                alert("Error saving balance: " + error.message);
+            }
+        };
+
+        // Logout function
+        window.logout = async function () {
+            try {
+                await signOut(auth);
+                window.location.href = "login.html";
+            } catch (error) {
+                alert("Error logging out: " + error.message);
+            }
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+
+            if (!user) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            currentUser = user;
+
+            // Load current balance from Firestore
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists() && userSnap.data().balance !== undefined) {
+                const balance = userSnap.data().balance;
+                document.getElementById("balanceAmount").innerText = balance.toFixed(2);
+            } else {
+                document.getElementById("balanceAmount").innerText = "0.00";
+            }
+
+            const snapshot = await getDocs(
+                collection(db, "users", user.uid, "expenses")
+            );
+
+            const weeklyData = [0, 0, 0, 0, 0, 0, 0]; // Sun-Sat
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.createdAt) {
+                    const date = data.createdAt.toDate();
+                    const day = date.getDay();
+                    weeklyData[day] += data.amount;
+                }
+            });
+
+            const ctx = document.getElementById("weeklyExpenseChart");
+
+            new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+                    datasets: [{
+                        label: "Weekly Expenses (₹)",
+                        data: weeklyData,
+                        fill: false,
+                        tension: 0.4,   // makes line smooth
+                        borderWidth: 3,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+
+
+    </script>
+
+</body>
+
+</html>

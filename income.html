@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Income - Zexpense</title>
+    <link rel="stylesheet" href="income.css">
+</head>
+
+<body>
+    <div class="form-container">
+        <div class="form-card">
+            <h3>Add New Income</h3>
+
+            <div class="form-row">
+                <label>Amount</label>
+                <input type="number" id="amountInput" placeholder="Enter amount">
+            </div>
+
+            <div class="form-row">
+                <label>Source</label>
+                <select id="sourceSelect" onchange="toggleSourceInput()">
+                    <option>Salary</option>
+                    <option>Freelance</option>
+                    <option>Investment</option>
+                    <option>Gift</option>
+                    <option>Business</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <input type="text" id="customSource" placeholder="Enter your source"
+                    style="display: none; margin-top: 8px;">
+            </div>
+
+            <div class="form-row">
+                <label>Description</label>
+                <input type="text" id="descriptionInput" placeholder="Optional description">
+            </div>
+
+            <div class="form-row">
+                <label>Time</label>
+                <input type="time" id="timeInput">
+            </div>
+
+            <button type="button" class="add-btn" onclick="addIncome()">Add Income</button>
+            <button type="button" class="back-btn" onclick="window.location.href='home.html'">Back to Home</button>
+        </div>
+    </div>
+
+    <script>
+        function toggleSourceInput() {
+            const select = document.getElementById("sourceSelect");
+            const customInput = document.getElementById("customSource");
+
+            if (select.value === "Other") {
+                customInput.style.display = "block";
+            } else {
+                customInput.style.display = "none";
+            }
+        }
+    </script>
+
+    <script type="module">
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            serverTimestamp,
+            doc,
+            updateDoc,
+            increment
+        } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        import {
+            getAuth,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKTMydhOiGqhcBb3OSNrGRDQ8Y8D7npk8",
+            authDomain: "zexpense-a4bf3.firebaseapp.com",
+            projectId: "zexpense-a4bf3",
+            storageBucket: "zexpense-a4bf3.appspot.com",
+            messagingSenderId: "983153509883",
+            appId: "1:983153509883:web:7483e1189ee501ac2ab75e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+
+        // Check if user is logged in
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                alert("Please login first.");
+                window.location.href = "login.html";
+            } else {
+                currentUser = user;
+            }
+        });
+
+        // Make function global
+        window.addIncome = async function () {
+
+            if (!currentUser) {
+                alert("User not authenticated.");
+                return;
+            }
+
+            const amount = document.getElementById("amountInput").value;
+            const time = document.getElementById("timeInput").value;
+            const description = document.getElementById("descriptionInput").value;
+
+            let source = document.getElementById("sourceSelect").value;
+
+            if (source === "Other") {
+                source = document.getElementById("customSource").value;
+            }
+
+            if (!amount || amount <= 0) {
+                alert("Enter valid amount");
+                return;
+            }
+
+            try {
+
+                const incomeAmount = parseFloat(amount);
+
+                // 1️⃣ Save income document
+                await addDoc(collection(db, "users", currentUser.uid, "income"), {
+                    amount: incomeAmount,
+                    source,
+                    description,
+                    time,
+                    createdAt: serverTimestamp()
+                });
+
+                // 2️⃣ ADD to balance
+                const userRef = doc(db, "users", currentUser.uid);
+
+                await updateDoc(userRef, {
+                    balance: increment(incomeAmount)
+                });
+
+                alert("Income saved successfully!");
+
+                // Redirect to home page
+                window.location.href = "home.html";
+
+            } catch (error) {
+                alert(error.message);
+            }
+        };
+
+
+    </script>
+
+</body>
+
+</html>
