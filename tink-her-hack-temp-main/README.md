@@ -13,7 +13,7 @@
 - Member 2: Rida Fathima PP - Noble Women's College, Manjeri
 
 ### Hosted Project Link
-[mention your project hosted link here]
+https://zexpense.vercel.app/
 
 ### Project Description
 Our project is a smart expense tracking website that helps users record their daily income and expenses easily. It automatically updates the current balance in real-time and stores all data securely using Firebase. The website also tracks spending categories, mood, and reasons to give better financial awareness.
